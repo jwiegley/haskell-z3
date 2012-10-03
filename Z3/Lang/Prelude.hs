@@ -56,7 +56,6 @@ import qualified Z3.Base as Base
 import Z3.Lang.Exprs
 import Z3.Lang.Monad
 
-import Control.Monad.State
 import Data.Typeable ( Typeable1(..), typeOf )
 import Unsafe.Coerce ( unsafeCoerce )
 
@@ -71,12 +70,15 @@ var = do
     smb <- mkStringSymbol str
     (srt :: Base.Sort (TypeZ3 a)) <- mkSort
     addConst u =<< mkConst smb srt
-    return $ Const u
+    let e = Const u
+    assert $ typeInv e
+    return e
 
 -- | Make assertion in current context.
 --
 assert :: Expr Bool -> Z3 ()
-assert = join . liftM assertCnstr . compile
+assert (Lit True) = return ()
+assert e          = compile e >>= assertCnstr
 
 -- | Introduce an auxiliary declaration to name a given expression.
 --
@@ -256,6 +258,7 @@ ite = Ite
 type instance TypeZ3 Bool = Bool
 
 instance IsTy Bool where
+  typeInv = const true
   compile = compileBool
 
 instance IsScalar Bool where
@@ -264,7 +267,7 @@ instance IsScalar Bool where
 
 compileBool :: Expr Bool -> Z3 (AST Bool)
 compileBool (Lit a)
-    = mkLiteral (toZ3Type a)
+    = mkLiteral a
 compileBool (Const u)
     = getConst u
 compileBool (Not b)
@@ -294,7 +297,7 @@ compileBool (Ite b e1 e2)
          e2' <- compileBool e2
          mkIte b' e1' e2'
 compileBool _
-    = error "Z3.Lang.Bool.compileBool: Panic!\
+    = error "Z3.Lang.Prelude.compileBool: Panic!\
         \ Impossible constructor in pattern matching!"
 
 ----------------------------------------------------------------------
@@ -303,6 +306,7 @@ compileBool _
 type instance TypeZ3 Integer = Integer
 
 instance IsTy Integer where
+  typeInv = const true
   compile = compileInteger
 
 instance IsScalar Integer where
@@ -314,7 +318,7 @@ instance IsInt Integer where
 
 compileInteger :: Expr Integer -> Z3 (AST Integer)
 compileInteger (Lit a)
-  = mkLiteral (toZ3Type a)
+  = mkLiteral a
 compileInteger (Const u)
   = getConst u
 compileInteger (Neg e)
@@ -331,7 +335,7 @@ compileInteger (Ite eb e1 e2)
        e2' <- compileInteger e2
        mkIte eb' e1' e2'
 compileInteger _
-    = error "Z3.Lang.Integer.compileInteger: Panic!\
+    = error "Z3.Lang.Prelude.compileInteger: Panic!\
         \ Impossible constructor in pattern matching!"
 
 ----------------------------------------------------------------------
@@ -340,6 +344,7 @@ compileInteger _
 type instance TypeZ3 Rational = Rational
 
 instance IsTy Rational where
+  typeInv = const true
   compile = compileRational
 
 instance IsScalar Rational where
@@ -351,7 +356,7 @@ instance IsReal Rational where
 
 compileRational :: Expr Rational -> Z3 (AST Rational)
 compileRational (Lit a)
-  = mkLiteral (toZ3Type a)
+  = mkLiteral a
 compileRational (Const u)
   = getConst u
 compileRational (Neg e)
@@ -368,5 +373,5 @@ compileRational (Ite eb e1 e2)
        e2' <- compileRational e2
        mkIte eb' e1' e2'
 compileRational _
-    = error "Z3.Lang.Rational.compileRational: Panic!\
+    = error "Z3.Lang.Prelude.compileRational: Panic!\
         \ Impossible constructor in pattern matching!"
