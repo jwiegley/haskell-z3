@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE IncoherentInstances #-}
@@ -76,6 +78,7 @@ module Z3.Base (
     , mkXor
     , mkAnd
     , mkOr
+    , mkDistinct
     , mkAdd
     , mkMul
     , mkSub
@@ -108,20 +111,26 @@ module Z3.Base (
 
     -- * Models
     , eval
+    , showModel
+    , showContext
 
     -- * Constraints
     , assertCnstr
     , check
     , getModel
+    , push
+    , pop
 
     ) where
 
 import Z3.Base.C
 import Z3.Lang.TY
 
-import Control.Applicative ( (<$>) )
+import Control.Applicative ( Applicative(..), (<$>) )
+import Data.Foldable ( Foldable )
 import Data.Int
 import Data.Ratio ( Ratio, numerator, denominator, (%) )
+import Data.Traversable ( Traversable )
 import Data.Typeable ( Typeable, typeOf )
 import Data.Word
 import Foreign hiding ( newForeignPtr, addForeignPtrFinalizer, toBool )
@@ -230,12 +239,18 @@ data Result a
     = Sat a
     | Unsat
     | Undef
-    deriving (Eq, Ord, Read, Show)
+    deriving (Eq, Ord, Read, Show, Foldable, Traversable)
 
 instance Functor Result where
   fmap f (Sat x) = Sat $ f x
   fmap _ Unsat   = Unsat
   fmap _ Undef   = Undef
+
+instance Applicative Result where
+  pure = return
+  Sat f <*> x = f <$> x
+  Unsat <*> _ = Unsat
+  Undef <*> _ = Undef
 
 instance Monad Result where
   return = Sat
@@ -584,6 +599,14 @@ mkOr c es =
       AST <$> z3_mk_or cptr n (castPtr aptr)
   where n = fromIntegral $ length es
 
+mkDistinct :: Context -> [AST Bool] -> IO (AST Bool)
+mkDistinct _ [] = error "Z3.Base.mkDistinct: empty list of expressions"
+mkDistinct c es =
+  withArray es $ \aptr ->
+    withContext c $ \cptr ->
+      AST <$> z3_mk_distinct cptr n (castPtr aptr)
+  where n = fromIntegral $ length es
+
 -- | Create an AST node representing args[0] + ... + args[num_args-1].
 --
 -- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga4e4ac0a4e53eee0b4b0ef159ed7d0cd5>
@@ -910,6 +933,16 @@ eval ctx m a =
 -- Constraints
 
 -- TODO Constraints: Z3_push
+push :: Context -> IO ()
+push ctx =
+  withContext ctx $ \ctxPtr ->
+    z3_push ctxPtr
+
+pop :: Context -> Int -> IO ()
+pop ctx cnt =
+  withContext ctx $ \ctxPtr ->
+    z3_pop ctxPtr (fromIntegral cnt)
+
 -- TODO Constraints: Z3_pop
 -- TODO Constraints: Z3_get_num_scopes
 -- TODO Constraints: Z3_persist_ast
@@ -939,6 +972,16 @@ getModel c = withContext c $ \ctxPtr ->
                              | otherwise    = do z3m <- peek p
                                                  m <- mkModel c z3m
                                                  return $ Sat m
+
+showModel :: Context -> Model -> IO String
+showModel (Context fpc) (Model pm) =
+  withForeignPtr fpc $ \ pc ->
+    z3_model_to_string pc pm >>= peekCString
+ 
+showContext :: Context -> IO String
+showContext (Context fpc) =
+  withForeignPtr fpc $ \ pc ->
+    z3_context_to_string pc >>= peekCString
 
 -- | Check whether the given logical context is consistent or not.
 --

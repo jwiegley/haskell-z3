@@ -229,6 +229,8 @@ foreign import ccall unsafe "Z3_mk_eq"
     z3_mk_eq :: Ptr Z3_context -> Ptr Z3_ast -> Ptr Z3_ast -> IO (Ptr Z3_ast)
 
 -- TODO: Z3_mk_distinct
+foreign import ccall unsafe "Z3_mk_distinct"
+    z3_mk_distinct :: Ptr Z3_context -> CUInt -> Ptr (Ptr Z3_ast) -> IO (Ptr Z3_ast)
 
 -- | Create an AST node representing not(a).
 --
@@ -862,8 +864,13 @@ foreign import ccall unsafe "Z3_eval"
 ---------------------------------------------------------------------
 -- * Constraints
 
--- TODO Constraints: Z3_push
+foreign import ccall unsafe "Z3_push"
+    z3_push :: Ptr Z3_context -> IO ()
+
 -- TODO Constraints: Z3_pop
+foreign import ccall unsafe "Z3_pop"
+    z3_pop :: Ptr Z3_context -> CUInt -> IO ()
+
 -- TODO Constraints: Z3_get_num_scopes
 -- TODO Constraints: Z3_persist_ast
 
@@ -897,6 +904,12 @@ foreign import ccall unsafe "Z3_check"
 --
 foreign import ccall unsafe "Z3_del_model"
     z3_del_model :: Ptr Z3_context -> Ptr Z3_model -> IO ()
+
+foreign import ccall unsafe "Z3_model_to_string"
+    z3_model_to_string :: Ptr Z3_context -> Ptr Z3_model -> IO CString
+
+foreign import ccall unsafe "Z3_context_to_string"
+    z3_context_to_string :: Ptr Z3_context -> IO CString
 
 
 -- TODO From section 'Constraints' on.

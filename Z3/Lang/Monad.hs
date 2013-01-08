@@ -58,6 +58,10 @@ module Z3.Lang.Monad (
     , mkIntArith
     , mkRealArith
     , mkIte
+    , pop
+    , push
+    , showContext
+    , showModel
 
     -- * Satisfiability result
     , Base.Result(..)
@@ -70,6 +74,7 @@ import qualified Z3.Base as Base
 
 import Control.Applicative ( Applicative )
 import Control.Monad.State
+import Data.Traversable ( traverse )
 
 ---------------------------------------------------------------------
 -- The Z3 Monad
@@ -77,11 +82,7 @@ import Control.Monad.State
 -- | Z3 monad.
 --
 newtype Z3 a = Z3 (StateT Z3State IO a)
-    deriving (Functor, Applicative, Monad)
-
-instance MonadState Z3State Z3 where
-    get = Z3 $ StateT $ \s -> return (s,s)
-    put st = Z3 $ StateT $ \_ -> return ((), st)
+    deriving (Functor, Applicative, Monad, MonadState Z3State)
 
 -- | Internal state of Z3 monad.
 --
@@ -193,6 +194,12 @@ eval = liftZ3Op3 Base.eval
 getBool :: Base.AST Bool -> Z3 (Maybe Bool)
 getBool = liftZ3Op2 Base.getBool
 
+push :: Z3 ()
+push = liftZ3Op Base.push
+
+pop :: Int -> Z3 ()
+pop = liftZ3Op2 Base.pop
+
 getInt :: Base.AST Integer -> Z3 Integer
 getInt = liftZ3Op2 Base.getInt
 
@@ -201,6 +208,17 @@ getReal = liftZ3Op2 Base.getReal
 
 getModel :: Z3 (Base.Result Base.Model)
 getModel = liftZ3Op Base.getModel
+
+showModel :: Z3 (Base.Result String)
+showModel = do
+  c <- gets context
+  mm <- getModel
+  liftZ3 $ traverse (Base.showModel c) mm
+
+showContext :: Z3 String
+showContext = do
+  c <- gets context
+  liftZ3 $ Base.showContext c
 
 getValue :: Base.Z3Type a => Base.AST a -> Z3 a
 getValue = liftZ3Op2 Base.getValue
@@ -223,8 +241,9 @@ mkBoolBin Implies = liftZ3Op3 Base.mkImplies
 mkBoolBin Iff     = liftZ3Op3 Base.mkIff
 
 mkBoolMulti :: BoolMultiOp -> [Base.AST Bool] -> Z3 (Base.AST Bool)
-mkBoolMulti And = liftZ3Op2 Base.mkAnd
-mkBoolMulti Or  = liftZ3Op2 Base.mkOr
+mkBoolMulti And      = liftZ3Op2 Base.mkAnd
+mkBoolMulti Or       = liftZ3Op2 Base.mkOr
+mkBoolMulti Distinct = liftZ3Op2 Base.mkDistinct
 
 mkPattern :: Base.Z3Type a => [Base.AST a] -> Z3 Base.Pattern
 mkPattern = liftZ3Op2 Base.mkPattern

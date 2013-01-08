@@ -37,11 +37,15 @@ module Z3.Lang.Prelude (
 
     -- ** Commands
     , var
+    , namedVar
     , fun1, fun2, fun3, fun4, fun5
     , assert
     , let_
     , check
     , checkModel
+    , showContext
+    , showModel
+    , push, pop
 
     -- * Expressions
     , Expr
@@ -56,6 +60,7 @@ module Z3.Lang.Prelude (
     , not_
     , and_, (&&*)
     , or_, (||*)
+    , distinct_
     , xor
     , implies, (==>)
     , iff, (<=>)
@@ -99,17 +104,28 @@ compileWithTCC e = do
 ---------------------------------------------------------------------
 -- Commands
 
--- | Declare skolem variables.
---
-var :: forall a. IsTy a => Z3 (Expr a)
-var = do
-    (u, str) <- fresh
+createVar :: forall a. IsTy a => Int -> String -> Z3 (Expr a)
+createVar u str = do
     smb <- mkStringSymbol str
     (srt :: Base.Sort (TypeZ3 a)) <- mkSort
     cnst <- mkConst smb srt
     let e = Const u cnst
     assert $ typeInv e
     return e
+
+-- | Declare skolem variables.
+--
+var :: IsTy a => Z3 (Expr a)
+var = do
+    (u, str) <- fresh
+    createVar u str
+
+-- | Declare skolem variables with a user specified name.
+--
+namedVar :: IsTy a => String -> Z3 (Expr a)
+namedVar name = do
+    (u, str) <- fresh
+    createVar u $ name ++ "/" ++ str
 
 -- | Declare uninterpreted function of arity 1.
 --
@@ -303,6 +319,10 @@ and_ bs = BoolMulti And bs
 or_ :: [Expr Bool] -> Expr Bool
 or_ [] = false
 or_ bs = BoolMulti Or bs
+-- | Boolean variadic /distinct/.
+distinct_ :: [Expr Bool] -> Expr Bool
+distinct_ [] = true
+distinct_ bs = BoolMulti Distinct bs
 
 -- | Boolean binary /and/.
 --
