@@ -36,7 +36,7 @@ module Z3.Base (
     , Model
 
     -- ** Satisfiability result
-    , Result
+    , Result(..)
 
     -- * Configuration
     , mkConfig
@@ -616,7 +616,6 @@ mkPattern c es =
   withArray (map unAST es) $ \aptr ->
     Pattern <$> z3_mk_pattern (unContext c) n aptr
   where n = genericLength es
-
 mkBound :: Context -> Int -> Sort -> IO AST
 mkBound c i s
   | i >= 0    = AST <$> z3_mk_bound (unContext c) (fromIntegral i) (unSort s)
@@ -627,18 +626,32 @@ mkForall c pats x s p
   = withArray (map unPattern pats) $ \patsPtr ->
     withArray (map unSymbol  x   ) $ \xptr ->
     withArray (map unSort    s   ) $ \sptr ->
-      AST <$> z3_mk_forall cptr 0 n patsPtr 1 sptr xptr (unAST p)
+      AST <$> z3_mk_forall cptr 0 n patsPtr len sptr xptr (unAST p)
   where n    = genericLength pats
         cptr = unContext c
+        len
+          | l == 0        = error "Z3.Base.mkForall:\
+              \ forall with 0 bound variables"
+          | l /= length x = error "Z3.Base.mkForall:\
+              \ different number of symbols and sorts"
+          | otherwise     = fromIntegral l
+          where l = length s
 
 mkExists :: Context -> [Pattern] -> [Symbol] -> [Sort] -> AST -> IO AST
 mkExists c pats x s p
   = withArray (map unPattern pats) $ \patsPtr ->
     withArray (map unSymbol  x   ) $ \xptr ->
     withArray (map unSort    s   ) $ \sptr ->
-      AST <$> z3_mk_exists cptr 0 n patsPtr 1 sptr xptr (unAST p)
+      AST <$> z3_mk_exists cptr 0 n patsPtr len sptr xptr (unAST p)
   where n    = fromIntegral $ length pats
         cptr = unContext c
+        len
+          | l == 0        = error "Z3.Base.mkForall:\
+              \ forall with 0 bound variables"
+          | l /= length x = error "Z3.Base.mkForall:\
+              \ different number of symbols and sorts"
+          | otherwise     = fromIntegral l
+          where l = length s
 
 ---------------------------------------------------------------------
 -- Accessors
@@ -729,7 +742,10 @@ getModel c =
       (toResult lb,) <$> peekModel mptr
   where peekModel :: Ptr (Ptr Z3_model) -> IO (Maybe Model)
         peekModel p | p == nullPtr = return Nothing
-                    | otherwise    = Just . Model <$> peek p
+                    | otherwise    = mkModel <$> peek p
+        mkModel :: Ptr Z3_model -> Maybe Model
+        mkModel p | p == nullPtr = Nothing
+                  | otherwise    = Just $ Model p 
 
 -- | Delete a model object.
 --
