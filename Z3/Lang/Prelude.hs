@@ -47,7 +47,6 @@ module Z3.Lang.Prelude (
     , showContext
     , showModel
     , exprToString
-    , setExprPrintMode
     , push, pop
 
     -- * Expressions
@@ -82,11 +81,14 @@ module Z3.Lang.Prelude (
 
 import Z3.Base ( AST )
 import qualified Z3.Base as Base
+import Z3.Monad hiding ( Z3, mkEq, Pattern, evalZ3, evalZ3With )
 import Z3.Lang.Exprs
 import Z3.Lang.Monad
 import Z3.Lang.TY
 
 import Control.Applicative ( (<$>) )
+import Data.Traversable ( Traversable )
+import qualified Data.Traversable as T
 #if __GLASGOW_HASKELL__ < 704
 import Data.Typeable ( Typeable1(..), typeOf )
 import Unsafe.Coerce ( unsafeCoerce )
@@ -252,7 +254,8 @@ instance IsNum a => Num (Expr a) where
   a * b = CRingArith Mul [a,b]
   (CRingArith Sub as) - b = CRingArith Sub (as ++ [b])
   a - b = CRingArith Sub [a,b]
-  negate = Neg
+  negate (CRingArith Sub [a,b]) = CRingArith Sub [b,a]
+  negate t = Neg t
   abs e = ite (e >=* 0) e (-e)
   signum e = ite (e >* 0) 1 (ite (e ==* 0) 0 (-1))
   fromInteger = literal . fromInteger
@@ -373,7 +376,7 @@ e1 ==* e2 = CmpE Eq [e1,e2]
 -- | Not equals.
 --
 (/=*) :: IsTy a => Expr a -> Expr a -> Expr Bool
-e1 /=* e2 = CmpE Neq [e1,e2]
+e1 /=* e2 = CmpE Distinct [e1,e2]
 
 -- | Less or equals than.
 --

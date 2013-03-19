@@ -162,6 +162,7 @@ module Z3.Base (
 
     -- * Models
     , eval
+    , evalT
     , showModel
     , showContext
 
@@ -214,6 +215,8 @@ import Control.Exception ( bracket )
 import Data.List ( genericLength )
 import Data.Int
 import Data.Ratio ( Ratio, numerator, denominator, (%) )
+import Data.Traversable ( Traversable )
+import qualified Data.Traversable as T
 import Data.Typeable ( Typeable )
 import Data.Word
 import Foreign hiding ( toBool )
@@ -1202,6 +1205,10 @@ eval ctx m a =
         peekAST  p True  = Just . AST <$> peek p
 
         ctxPtr = unContext ctx
+
+-- | Evaluate a collection of AST nodes in the given model.
+evalT :: Traversable t => Context -> Model -> t AST -> IO (Maybe (t AST))
+evalT c m = fmap T.sequence . T.mapM (eval c m)
 
 ---------------------------------------------------------------------
 -- Constraints
