@@ -1,6 +1,10 @@
 
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
+  -- This is just to avoid warnings because we import fragile new Z3 API stuff
+  -- from Z3.Base
+
 -- TODO: Error handling
 
 -- |
@@ -29,12 +33,19 @@ module Z3.Monad
   , App
   , Pattern
   , Model
+  , FuncInterp
+  , FuncEntry
   , FuncModel(..)
 
   -- ** Satisfiability result
   , Result(..)
 
+  -- * Context
+  , contextToString
+  , showContext
+
   -- * Symbols
+  , mkIntSymbol
   , mkStringSymbol
 
   -- * Sorts
@@ -154,8 +165,18 @@ module Z3.Monad
   , evalT
   , evalFunc
   , evalArray
+  , getFuncInterp
+  , isAsArray
+  , getAsArrayFuncDecl
+  , funcInterpGetNumEntries
+  , funcInterpGetEntry
+  , funcInterpGetElse
+  , funcInterpGetArity
+  , funcEntryGetValue
+  , funcEntryGetNumArgs
+  , funcEntryGetArg
+  , modelToString
   , showModel
-  , showContext
 
   -- * Constraints
   , assertCnstr
@@ -173,6 +194,7 @@ module Z3.Monad
   , patternToString
   , sortToString
   , funcDeclToString
+  , benchmarkToSMTLibString
   )
   where
 
@@ -185,6 +207,8 @@ import Z3.Base
   , App
   , Pattern
   , Model
+  , FuncInterp
+  , FuncEntry
   , FuncModel(..)
   , Result(..)
   , Logic(..)
@@ -225,6 +249,12 @@ liftFun3 f a b c = getContext >>= \ctx -> liftIO (f ctx a b c)
 liftFun4 :: MonadZ3 z3 => (Base.Context -> a -> b -> c -> d -> IO e)
                 -> a -> b -> c -> d -> z3 e
 liftFun4 f a b c d = getContext >>= \ctx -> liftIO (f ctx a b c d)
+
+liftFun6 :: MonadZ3 z3 =>
+              (Base.Context -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> IO b)
+                -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> z3 b
+liftFun6 f x1 x2 x3 x4 x5 x6 =
+  getContext >>= \ctx -> liftIO (f ctx x1 x2 x3 x4 x5 x6)
 
 liftSolver0 :: MonadZ3 z3 =>
        (Base.Context -> Base.Solver -> IO b)
@@ -272,7 +302,22 @@ evalZ3 :: Z3 a -> IO a
 evalZ3 = evalZ3With Nothing stdOpts
 
 ---------------------------------------------------------------------
+-- Contexts
+
+-- | Convert Z3's logical context into a string.
+contextToString :: MonadZ3 z3 => z3 String
+contextToString = liftScalar Base.contextToString
+
+-- | Alias for 'contextToString'.
+showContext :: MonadZ3 z3 => z3 String
+showContext = contextToString
+
+---------------------------------------------------------------------
 -- Symbols
+
+-- | Create a Z3 symbol using an integer.
+mkIntSymbol :: (MonadZ3 z3, Integral i) => i -> z3 Symbol
+mkIntSymbol = liftFun1 Base.mkIntSymbol
 
 -- | Create a Z3 symbol using a string.
 --
@@ -914,6 +959,80 @@ evalFunc = liftFun2 Base.evalFunc
 evalArray :: MonadZ3 z3 => Model -> AST -> z3 (Maybe FuncModel)
 evalArray = liftFun2 Base.evalArray
 
+-- | Return the interpretation of the function f in the model m.
+-- Return NULL, if the model does not assign an interpretation for f.
+-- That should be interpreted as: the f does not matter.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#gafb9cc5eca9564d8a849c154c5a4a8633>
+getFuncInterp :: MonadZ3 z3 => Model -> FuncDecl -> z3 (Maybe FuncInterp)
+getFuncInterp = liftFun2 Base.getFuncInterp
+
+-- | The (_ as-array f) AST node is a construct for assigning interpretations
+-- for arrays in Z3. It is the array such that forall indices i we have that
+-- (select (_ as-array f) i) is equal to (f i). This procedure returns Z3_TRUE
+-- if the a is an as-array AST node.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga4674da67d226bfb16861829b9f129cfa>
+isAsArray :: MonadZ3 z3 => AST -> z3 Bool
+isAsArray = liftFun1 Base.isAsArray
+
+-- | Return the function declaration f associated with a (_ as_array f) node.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga7d9262dc6e79f2aeb23fd4a383589dda>
+getAsArrayFuncDecl :: MonadZ3 z3 => AST -> z3 FuncDecl
+getAsArrayFuncDecl = liftFun1 Base.getAsArrayFuncDecl
+
+-- | Return the number of entries in the given function interpretation.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga2bab9ae1444940e7593729beec279844>
+funcInterpGetNumEntries :: MonadZ3 z3 => FuncInterp -> z3 Int
+funcInterpGetNumEntries = liftFun1 Base.funcInterpGetNumEntries
+
+-- | Return a "point" of the given function intepretation.
+-- It represents the value of f in a particular point.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#gaf157e1e1cd8c0cfe6a21be6370f659da>
+funcInterpGetEntry :: MonadZ3 z3 => FuncInterp -> Int -> z3 FuncEntry
+funcInterpGetEntry = liftFun2 Base.funcInterpGetEntry
+
+-- | Return the 'else' value of the given function interpretation.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga46de7559826ba71b8488d727cba1fb64>
+funcInterpGetElse :: MonadZ3 z3 => FuncInterp -> z3 AST
+funcInterpGetElse = liftFun1 Base.funcInterpGetElse
+
+-- | Return the arity (number of arguments) of the given function
+-- interpretation.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#gaca22cbdb6f7787aaae5d814f2ab383d8>
+funcInterpGetArity :: MonadZ3 z3 => FuncInterp -> z3 Int
+funcInterpGetArity = liftFun1 Base.funcInterpGetArity
+
+-- | Return the value of this point.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga9fd65e2ab039aa8e40608c2ecf7084da>
+funcEntryGetValue :: MonadZ3 z3 => FuncEntry -> z3 AST
+funcEntryGetValue = liftFun1 Base.funcEntryGetValue
+
+-- | Return the number of arguments in a Z3_func_entry object.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga51aed8c5bc4b1f53f0c371312de3ce1a>
+funcEntryGetNumArgs :: MonadZ3 z3 => FuncEntry -> z3 Int
+funcEntryGetNumArgs = liftFun1 Base.funcEntryGetNumArgs
+
+-- | Return an argument of a Z3_func_entry object.
+--
+-- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga6fe03fe3c824fceb52766a4d8c2cbeab>
+funcEntryGetArg :: MonadZ3 z3 => FuncEntry -> Int -> z3 AST
+funcEntryGetArg = liftFun2 Base.funcEntryGetArg
+
+-- | Convert the given model into a string.
+modelToString :: MonadZ3 z3 => Model -> z3 String
+modelToString = liftFun1 Base.modelToString
+
+-- | Alias for 'modelToString'.
+showModel :: MonadZ3 z3 => Model -> z3 String
+showModel = modelToString
 
 ---------------------------------------------------------------------
 -- Constraints
@@ -952,14 +1071,6 @@ withModel f = do
  void $ T.traverse delModel mb_m
  return (r, mb_e)
 
--- | Convert the given model into a string.
-showModel :: MonadZ3 z3 => Model -> z3 String
-showModel = liftFun1 Base.showModel
-
--- | Convert Z3's logical context into a string.
-showContext :: MonadZ3 z3 => z3 String
-showContext = liftScalar Base.showContext
-
 -- | Check whether the given logical context is consistent or not.
 check :: MonadZ3 z3 => z3 Result
 check = liftSolver0 Base.solverCheck Base.check
@@ -987,3 +1098,15 @@ sortToString = liftFun1 Base.sortToString
 funcDeclToString :: MonadZ3 z3 => FuncDecl -> z3 String
 funcDeclToString = liftFun1 Base.funcDeclToString
 
+-- | Convert the given benchmark into SMT-LIB formatted string.
+--
+-- The output format can be configured via 'setASTPrintMode'.
+benchmarkToSMTLibString :: MonadZ3 z3 =>
+                               String   -- ^ name
+                            -> String   -- ^ logic
+                            -> String   -- ^ status
+                            -> String   -- ^ attributes
+                            -> [AST]    -- ^ assumptions1
+                            -> AST      -- ^ formula
+                            -> z3 String
+benchmarkToSMTLibString = liftFun6 Base.benchmarkToSMTLibString
