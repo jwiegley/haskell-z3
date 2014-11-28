@@ -39,6 +39,8 @@ source-repository head
   location: https://bitbucket.org/iago/z3-haskell
 
 Library
+    hs-source-dirs: src
+
     Exposed-modules:
 
         Z3.Base
@@ -58,7 +60,15 @@ Library
 
     Build-tools:         hsc2hs
     Extensions:          FlexibleInstances
+                         FlexibleContexts
                          ForeignFunctionInterface
+                         MultiParamTypeClasses
+
+    Other-extensions:    DeriveDataTypeable
+                         EmptyDataDecls
+                         GeneralizedNewtypeDeriving
+                         PatternGuards
+                         TupleSections
 
     includes:            z3.h
 
