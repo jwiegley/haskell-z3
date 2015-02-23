@@ -249,8 +249,10 @@ module Z3.Base (
   , solverAssertCnstr
   , solverAssertAndTrack
   , solverCheck
+  , solverCheckAssumptions
   , solverGetModel
   , solverCheckAndGetModel
+  , solverGetUnsatCore
   , solverGetReasonUnknown
   , solverToString
 
@@ -1618,6 +1620,14 @@ solverAssertAndTrack = liftFun3 z3_solver_assert_and_track
 solverCheck :: Context -> Solver -> IO Result
 solverCheck ctx solver = marshal z3_solver_check ctx $ h2c solver
 
+-- | Check whether the assertions in the given solver and optional assumptions are consistent or not.
+solverCheckAssumptions :: Context -> Solver -> [AST] -> IO Result
+solverCheckAssumptions ctx solver assump =
+  marshal z3_solver_check_assumptions ctx $ \f ->
+    h2c solver $ \solverPtr ->
+    marshalArrayLen assump $ \assumpNum assumpArr ->
+      f solverPtr assumpNum assumpArr
+
 -- Retrieve the model for the last 'Z3_solver_check'.
 --
 -- The error handler is invoked if a model is not available because
@@ -1635,6 +1645,10 @@ solverCheckAndGetModel ctx solver =
                   Unsat -> return Nothing
                   _     -> Just <$> solverGetModel ctx solver
      return (res, mbModel)
+     
+-- | Retrieve the unsat core for the last @solverCheckAssumptions@; the unsat core is a subset of the assumptions
+solverGetUnsatCore :: Context -> Solver -> IO [AST]
+solverGetUnsatCore = liftFun1 z3_solver_get_unsat_core
 
 solverGetReasonUnknown :: Context -> Solver -> IO String
 solverGetReasonUnknown = liftFun1 z3_solver_get_reason_unknown
@@ -1873,7 +1887,7 @@ instance Marshal String CString where
 instance Marshal App (Ptr Z3_app) where
   c2h _ = return . App
   h2c a f = f (unApp a)
-
+  
 instance Marshal Params (Ptr Z3_params) where
   c2h ctx prmPtr = do
     z3_params_inc_ref ctxPtr prmPtr
@@ -1891,6 +1905,18 @@ instance Marshal AST (Ptr Z3_ast) where
     AST <$> newForeignPtr astPtr (z3_dec_ref ctxPtr astPtr)
     where ctxPtr = unContext ctx
   h2c a f = withForeignPtr (unAST a) f
+  
+instance Marshal [AST] (Ptr Z3_ast_vector) where
+  c2h ctx vecPtr = do
+    z3_ast_vector_inc_ref ctxPtr vecPtr
+    n <- z3_ast_vector_size ctxPtr vecPtr
+    res <- if n == 0 -- Need an explicit check, since n is unsigned so n - 1 might overflow
+              then return []
+              else mapM (\i -> z3_ast_vector_get ctxPtr vecPtr i >>= c2h ctx) [0 .. (n - 1)]
+    z3_ast_vector_dec_ref ctxPtr vecPtr
+    return res
+    where ctxPtr = unContext ctx
+  h2c _ _ = error "Marshal [AST] (Ptr Z3_ast_vector) => h2c not implemented"
 
 instance Marshal Sort (Ptr Z3_sort) where
   c2h _ = return . Sort

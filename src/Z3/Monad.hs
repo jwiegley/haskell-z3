@@ -195,9 +195,11 @@ module Z3.Monad
   -- * Constraints
   , assertCnstr
   , check
+  , checkAssumptions
   , getModel
   , delModel
   , withModel
+  , getUnsatCore
   , push
   , pop
   , local
@@ -1168,10 +1170,20 @@ withModel f = do
  mb_e <- T.traverse f mb_m
  void $ T.traverse delModel mb_m
  return (r, mb_e)
+ 
+-- | Retrieve the unsat core for the last @checkAssumptions@; the unsat core is a subset of the assumptions.
+getUnsatCore :: MonadZ3 z3 => z3 [AST]
+getUnsatCore = liftSolver0 Base.solverGetUnsatCore
+                           (error "getUnsatCore requires solver")
 
 -- | Check whether the given logical context is consistent or not.
 check :: MonadZ3 z3 => z3 Result
 check = liftSolver0 Base.solverCheck Base.check
+
+-- | Check whether the assertions in the given solver and optional assumptions are consistent or not.
+checkAssumptions :: MonadZ3 z3 => [AST] -> z3 Result
+checkAssumptions = liftSolver1 Base.solverCheckAssumptions
+                               (error "checkAssumptions requires solver")
 
 ---------------------------------------------------------------------
 -- String Conversion
