@@ -1,6 +1,10 @@
 
 # Release Notes
 
+## 4.5.0
+
+Update C API to Z3 4.5.0.
+
 ## 4.1.0
 
 Small maintenance release that however introduces one API breaking change.

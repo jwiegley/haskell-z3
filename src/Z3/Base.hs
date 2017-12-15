@@ -1128,8 +1128,8 @@ mkBvsubNoOverflow = liftFun2 z3_mk_bvsub_no_overflow
 
 -- | Create a predicate that checks that the bit-wise subtraction of /t1/ and
 -- /t2/ does not underflow.
-mkBvsubNoUnderflow :: Context -> AST -> AST -> IO AST
-mkBvsubNoUnderflow = liftFun2 z3_mk_bvsub_no_underflow
+mkBvsubNoUnderflow :: Context -> AST -> AST -> Bool -> IO AST
+mkBvsubNoUnderflow = liftFun3 z3_mk_bvsub_no_underflow
 
 -- | Create a predicate that checks that the bit-wise signed division of /t1/
 -- and /t2/ does not overflow.
@@ -1659,7 +1659,8 @@ getBoolValue c a = h2c a $ \astPtr ->
 
 -- | Return the kind of the given AST.
 getAstKind :: Context -> AST -> IO ASTKind
-getAstKind ctx ast = toAstKind <$> liftFun1 z3_get_ast_kind ctx ast
+getAstKind c a = h2c a $ \astPtr ->
+  toAstKind <$> withContextError c (\cPtr -> z3_get_ast_kind cPtr astPtr)
   where toAstKind :: Z3_ast_kind -> ASTKind
         toAstKind k
           | k == z3_numeral_ast       = Z3_NUMERAL_AST

@@ -1110,8 +1110,8 @@ mkBvsubNoOverflow = liftFun2 Base.mkBvsubNoOverflow
 -- /t2/ does not underflow.
 --
 -- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#ga6480850f9fa01e14aea936c88ff184c4>
-mkBvsubNoUnderflow :: MonadZ3 z3 => AST -> AST -> z3 AST
-mkBvsubNoUnderflow = liftFun2 Base.mkBvsubNoUnderflow
+mkBvsubNoUnderflow :: MonadZ3 z3 => AST -> AST -> Bool -> z3 AST
+mkBvsubNoUnderflow = liftFun3 Base.mkBvsubNoUnderflow
 
 -- | Create a predicate that checks that the bit-wise signed division of /t1/
 -- and /t2/ does not overflow.
