@@ -2129,7 +2129,6 @@ evalFunc ctx m fDecl =
 data ASTPrintMode
   = Z3_PRINT_SMTLIB_FULL
   | Z3_PRINT_LOW_LEVEL
-  | Z3_PRINT_SMTLIB_COMPLIANT
   | Z3_PRINT_SMTLIB2_COMPLIANT
 
 -- | Set the pretty-printing mode for converting ASTs to strings.
@@ -2140,8 +2139,6 @@ setASTPrintMode ctx mode = withContextError ctx $ \ctxPtr ->
          z3_set_ast_print_mode ctxPtr z3_print_smtlib_full
        Z3_PRINT_LOW_LEVEL ->
          z3_set_ast_print_mode ctxPtr z3_print_low_level
-       Z3_PRINT_SMTLIB_COMPLIANT ->
-         z3_set_ast_print_mode ctxPtr z3_print_smtlib_compliant
        Z3_PRINT_SMTLIB2_COMPLIANT ->
          z3_set_ast_print_mode ctxPtr z3_print_smtlib2_compliant
 
