@@ -39,6 +39,7 @@ module Z3.Monad
   , FuncInterp
   , FuncEntry
   , Params
+  , Optimize
   , Solver
   , ASTKind(..)
   -- ** Satisfiability result
@@ -211,6 +212,31 @@ module Z3.Monad
   , mkForallConst
   , mkExistsConst
 
+  -- * Optimization
+  , mkOptimize
+  , optimizeIncRef
+  , optimizeDecRef
+  , optimizeAssert
+  , optimizeAssertSoft
+  , optimizeMaximize
+  , optimizeMinimize
+  , optimizePush
+  , optimizePop
+  , optimizeCheck
+  , optimizeGetReasonUnknown
+  , optimizeGetModel
+  , optimizeSetParams
+  -- , optimizeGetParamDescrs
+  , optimizeGetLower
+  , optimizeGetUpper
+  , optimizeToString
+  , optimizeFromString
+  , optimizeFromFile
+  , optimizeGetHelp
+  -- , optimizeGetStatistics
+  , optimizeGetAssertions
+  , optimizeGetObjectives
+
   -- * Accessors
   , getSymbolString
   , getBvSortSize
@@ -328,6 +354,7 @@ import Z3.Base
   , ASTPrintMode(..)
   , Version(..)
   , Params
+  , Optimize
   , Solver
   , ASTKind(..)
   )
@@ -1347,6 +1374,78 @@ mkExistsConst = liftFun3 Base.mkExistsConst
 
 mkExists :: MonadZ3 z3 => [Pattern] -> [Symbol] -> [Sort] -> AST -> z3 AST
 mkExists = liftFun4 Base.mkExists
+
+---------------------------------------------------------------------
+-- Optimization
+
+mkOptimize :: MonadZ3 z3 => z3 Optimize
+mkOptimize = liftScalar Base.mkOptimize
+
+optimizeIncRef :: MonadZ3 z3 => Optimize -> z3 ()
+optimizeIncRef = liftFun1 Base.optimizeIncRef
+
+optimizeDecRef :: MonadZ3 z3 => Optimize -> z3 ()
+optimizeDecRef = liftFun1 Base.optimizeDecRef
+
+optimizeAssert :: MonadZ3 z3 => Optimize -> AST -> z3 ()
+optimizeAssert = liftFun2 Base.optimizeAssert
+
+optimizeAssertSoft :: MonadZ3 z3 => Optimize -> AST -> String -> Symbol -> z3 Int
+optimizeAssertSoft = liftFun4 Base.optimizeAssertSoft
+
+optimizeMaximize :: MonadZ3 z3 => Optimize -> AST -> z3 Int
+optimizeMaximize = liftFun2 Base.optimizeMaximize
+
+optimizeMinimize :: MonadZ3 z3 => Optimize -> AST -> z3 Int
+optimizeMinimize = liftFun2 Base.optimizeMinimize
+
+optimizePush :: MonadZ3 z3 => Optimize -> z3 ()
+optimizePush = liftFun1 Base.optimizePush
+
+optimizePop :: MonadZ3 z3 => Optimize -> z3 ()
+optimizePop = liftFun1 Base.optimizePop
+
+optimizeCheck :: MonadZ3 z3 => Optimize -> z3 Result
+optimizeCheck = liftFun1 Base.optimizeCheck
+
+optimizeGetReasonUnknown :: MonadZ3 z3 => Optimize -> z3 String
+optimizeGetReasonUnknown = liftFun1 Base.optimizeGetReasonUnknown
+
+optimizeGetModel :: MonadZ3 z3 => Optimize -> z3 Model
+optimizeGetModel = liftFun1 Base.optimizeGetModel
+
+optimizeSetParams :: MonadZ3 z3 => Optimize -> Params -> z3 ()
+optimizeSetParams = liftFun2 Base.optimizeSetParams
+
+-- Base.optimizeGetParamDescrs :: MonadZ3 z3 => Optimize -> z3 ParamDescrs
+-- Base.optimizeGetParamDescrs = liftFun1 Base.optimizeGetParamDescrs
+
+optimizeGetLower :: MonadZ3 z3 => Optimize -> Int -> z3 AST
+optimizeGetLower = liftFun2 Base.optimizeGetLower
+
+optimizeGetUpper :: MonadZ3 z3 => Optimize -> Int -> z3 AST
+optimizeGetUpper = liftFun2 Base.optimizeGetUpper
+
+optimizeToString :: MonadZ3 z3 => Optimize -> z3 String
+optimizeToString = liftFun1 Base.optimizeToString
+
+optimizeFromString :: MonadZ3 z3 => Optimize -> String -> z3 ()
+optimizeFromString = liftFun2 Base.optimizeFromString
+
+optimizeFromFile :: MonadZ3 z3 => Optimize -> String -> z3 ()
+optimizeFromFile = liftFun2 Base.optimizeFromFile
+
+optimizeGetHelp :: MonadZ3 z3 => Optimize -> z3 String
+optimizeGetHelp = liftFun1 Base.optimizeGetHelp
+
+-- optimizeGetStatistics :: MonadZ3 z3 => Optimize -> z3 Stats
+-- optimizeGetStatistics = liftFun1 Base.optimizeGetStatistics
+
+optimizeGetAssertions :: MonadZ3 z3 => Optimize -> z3 [AST]
+optimizeGetAssertions = liftFun1 Base.optimizeGetAssertions
+
+optimizeGetObjectives :: MonadZ3 z3 => Optimize -> z3 [AST]
+optimizeGetObjectives = liftFun1 Base.optimizeGetObjectives
 
 ---------------------------------------------------------------------
 -- Accessors

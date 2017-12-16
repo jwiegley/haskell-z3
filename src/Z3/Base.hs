@@ -67,6 +67,7 @@ module Z3.Base (
   , FuncInterp
   , FuncEntry
   , Params
+  , Optimize
   , Solver
   , ASTKind(..)
   -- ** Satisfiability result
@@ -250,6 +251,31 @@ module Z3.Base (
   , mkForallConst
   , mkExistsConst
 
+  -- * Optimization
+  , mkOptimize
+  , optimizeIncRef
+  , optimizeDecRef
+  , optimizeAssert
+  , optimizeAssertSoft
+  , optimizeMaximize
+  , optimizeMinimize
+  , optimizePush
+  , optimizePop
+  , optimizeCheck
+  , optimizeGetReasonUnknown
+  , optimizeGetModel
+  , optimizeSetParams
+  -- , optimizeGetParamDescrs
+  , optimizeGetLower
+  , optimizeGetUpper
+  , optimizeToString
+  , optimizeFromString
+  , optimizeFromFile
+  , optimizeGetHelp
+  -- , optimizeGetStatistics
+  , optimizeGetAssertions
+  , optimizeGetObjectives
+
   -- * Accessors
   , getSymbolString
   , getBvSortSize
@@ -427,6 +453,13 @@ newtype FuncEntry = FuncEntry { unFuncEntry :: ForeignPtr Z3_func_entry }
 -- Starting at Z3 4.0, parameter sets are used to configure many components
 -- such as: simplifiers, tactics, solvers, etc.
 newtype Params = Params { unParams :: ForeignPtr Z3_params }
+    deriving Eq
+
+-- | A Z3 optimization set.
+--
+-- Starting at Z3 4.5, optimization sets are used to configure MAX-SAT
+-- capabilities such as: minimize, maximize, assert-soft, etc.
+newtype Optimize = Optimize { unOptimize :: ForeignPtr Z3_optimize }
     deriving Eq
 
 -- | A Z3 solver engine.
@@ -1509,6 +1542,78 @@ mkExistsConst = marshalMkQConst z3_mk_exists_const
 -- TODO: Z3_mk_quantifier_const_ex
 
 ---------------------------------------------------------------------
+-- Optimization
+
+mkOptimize :: Context -> IO Optimize
+mkOptimize = liftFun0 z3_mk_optimize
+
+optimizeIncRef :: Context -> Optimize -> IO ()
+optimizeIncRef = liftFun1 z3_optimize_inc_ref
+
+optimizeDecRef :: Context -> Optimize -> IO ()
+optimizeDecRef = liftFun1 z3_optimize_dec_ref
+
+optimizeAssert :: Context -> Optimize -> AST -> IO ()
+optimizeAssert = liftFun2 z3_optimize_assert
+
+optimizeAssertSoft :: Context -> Optimize -> AST -> String -> Symbol -> IO Int
+optimizeAssertSoft = liftFun4 z3_optimize_assert_soft
+
+optimizeMaximize :: Context -> Optimize -> AST -> IO Int
+optimizeMaximize = liftFun2 z3_optimize_maximize
+
+optimizeMinimize :: Context -> Optimize -> AST -> IO Int
+optimizeMinimize = liftFun2 z3_optimize_minimize
+
+optimizePush :: Context -> Optimize -> IO ()
+optimizePush = liftFun1 z3_optimize_push
+
+optimizePop :: Context -> Optimize -> IO ()
+optimizePop = liftFun1 z3_optimize_pop
+
+optimizeCheck :: Context -> Optimize -> IO Result
+optimizeCheck = liftFun1 z3_optimize_check
+
+optimizeGetReasonUnknown :: Context -> Optimize -> IO String
+optimizeGetReasonUnknown = liftFun1 z3_optimize_get_reason_unknown
+
+optimizeGetModel :: Context -> Optimize -> IO Model
+optimizeGetModel = liftFun1 z3_optimize_get_model
+
+optimizeSetParams :: Context -> Optimize -> Params -> IO ()
+optimizeSetParams = liftFun2 z3_optimize_set_params
+
+-- optimizeGetParamDescrs :: Context -> Optimize -> IO ParamDescrs
+-- optimizeGetParamDescrs = liftFun1 z3_optimize_get_param_descrs
+
+optimizeGetLower :: Context -> Optimize -> Int -> IO AST
+optimizeGetLower = liftFun2 z3_optimize_get_lower
+
+optimizeGetUpper :: Context -> Optimize -> Int -> IO AST
+optimizeGetUpper = liftFun2 z3_optimize_get_upper
+
+optimizeToString :: Context -> Optimize -> IO String
+optimizeToString = liftFun1 z3_optimize_to_string
+
+optimizeFromString :: Context -> Optimize -> String -> IO ()
+optimizeFromString = liftFun2 z3_optimize_from_string
+
+optimizeFromFile :: Context -> Optimize -> String -> IO ()
+optimizeFromFile = liftFun2 z3_optimize_from_file
+
+optimizeGetHelp :: Context -> Optimize -> IO String
+optimizeGetHelp = liftFun1 z3_optimize_get_help
+
+-- optimizeGetStatistics :: Context -> Optimize -> IO Stats
+-- optimizeGetStatistics = liftFun1 z3_optimize_get_statistics
+
+optimizeGetAssertions :: Context -> Optimize -> IO [AST]
+optimizeGetAssertions = liftFun1 z3_optimize_get_assertions
+
+optimizeGetObjectives :: Context -> Optimize -> IO [AST]
+optimizeGetObjectives = liftFun1 z3_optimize_get_objectives
+
+---------------------------------------------------------------------
 -- Accessors
 
 -- TODO: Z3_get_symbol_kind
@@ -2524,6 +2629,10 @@ instance Marshal Params (Ptr Z3_params) where
   c2h = mkC2hRefCount Params z3_params_inc_ref z3_params_dec_ref
   h2c prm = withForeignPtr (unParams prm)
 
+instance Marshal Optimize (Ptr Z3_optimize) where
+  c2h = mkC2hRefCount Optimize z3_optimize_inc_ref z3_optimize_dec_ref
+  h2c opt = withForeignPtr (unOptimize opt)
+
 instance Marshal Symbol (Ptr Z3_symbol) where
   c2h _ = return . Symbol
   h2c s f = f (unSymbol s)
@@ -2613,6 +2722,14 @@ liftFun3 :: (Marshal ah ac, Marshal bh bc, Marshal ch cc, Marshal rh rc) =>
 liftFun3 f c x y z = h2c x $ \x1 -> h2c y $ \y1 -> h2c z $ \z1 ->
   toHsCheckError c $ \cPtr -> f cPtr x1 y1 z1
 {-# INLINE liftFun3 #-}
+
+liftFun4 :: (Marshal ah ac, Marshal bh bc, Marshal ch cc, Marshal dh dc,
+            Marshal rh rc) =>
+              (Ptr Z3_context -> ac -> bc -> cc -> dc -> IO rc) ->
+              Context -> ah -> bh -> ch -> dh -> IO rh
+liftFun4 f c x y z w = h2c x $ \x1 -> h2c y $ \y1 -> h2c z $ \z1 -> h2c w $ \w1 ->
+  toHsCheckError c $ \cPtr -> f cPtr x1 y1 z1 w1
+{-# INLINE liftFun4 #-}
 
 ---------------------------------------------------------------------
 -- Utils
