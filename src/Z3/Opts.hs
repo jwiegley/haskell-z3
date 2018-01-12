@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 
 -- |
 -- Module    : Z3.Opts

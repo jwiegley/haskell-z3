@@ -642,8 +642,6 @@ z3_print_smtlib_full :: Z3_ast_print_mode
 z3_print_smtlib_full = Z3_ast_print_mode (#const Z3_PRINT_SMTLIB_FULL)
 z3_print_low_level :: Z3_ast_print_mode
 z3_print_low_level = Z3_ast_print_mode (#const Z3_PRINT_LOW_LEVEL)
-z3_print_smtlib_compliant :: Z3_ast_print_mode
-z3_print_smtlib_compliant = Z3_ast_print_mode (#const Z3_PRINT_SMTLIB_COMPLIANT)
 z3_print_smtlib2_compliant :: Z3_ast_print_mode
 z3_print_smtlib2_compliant = Z3_ast_print_mode (#const Z3_PRINT_SMTLIB2_COMPLIANT)
 newtype Z3_error_code = Z3_error_code CUInt deriving (Eq, Ord)
@@ -1854,6 +1852,12 @@ foreign import ccall unsafe "Z3_mk_int64"
 foreign import ccall unsafe "Z3_mk_unsigned_int64"
   z3_mk_unsigned_int64 :: (Ptr Z3_context) -> CULLong -> (Ptr Z3_sort) -> IO (Ptr Z3_ast)
 
+{- | create a bit-vector numeral from a vector of Booleans.
+       
+       \sa Z3_mk_numeral -}
+foreign import ccall unsafe "Z3_mk_bv_numeral"
+  z3_mk_bv_numeral :: (Ptr Z3_context) -> CUInt -> Ptr Z3_bool -> IO (Ptr Z3_ast)
+
 {- | Create a sequence sort out of the sort for the elements. -}
 foreign import ccall unsafe "Z3_mk_seq_sort"
   z3_mk_seq_sort :: (Ptr Z3_context) -> (Ptr Z3_sort) -> IO (Ptr Z3_sort)
@@ -2526,7 +2530,7 @@ foreign import ccall unsafe "Z3_get_app_num_args"
 
 {- | Return the i-th argument of the given application.
 
-       \pre i < Z3_get_num_args(c, a) -}
+       \pre i < Z3_get_app_num_args(c, a) -}
 foreign import ccall unsafe "Z3_get_app_arg"
   z3_get_app_arg :: (Ptr Z3_context) -> (Ptr Z3_app) -> CUInt -> IO (Ptr Z3_ast)
 
@@ -3081,7 +3085,7 @@ foreign import ccall unsafe "Z3_toggle_warning_messages"
        To print shared common subexpressions only once,
        use the Z3_PRINT_LOW_LEVEL mode.
        To print in way that conforms to SMT-LIB standards and uses let
-       expressions to share common sub-expressions use Z3_PRINT_SMTLIB_COMPLIANT.
+       expressions to share common sub-expressions use Z3_PRINT_SMTLIB2_COMPLIANT.
 
        \sa Z3_ast_to_string
        \sa Z3_pattern_to_string
@@ -3142,66 +3146,9 @@ foreign import ccall unsafe "Z3_parse_smtlib2_string"
 foreign import ccall unsafe "Z3_parse_smtlib2_file"
   z3_parse_smtlib2_file :: (Ptr Z3_context) -> CString -> CUInt -> Ptr (Ptr Z3_symbol) -> Ptr (Ptr Z3_sort) -> CUInt -> Ptr (Ptr Z3_symbol) -> Ptr (Ptr Z3_func_decl) -> IO (Ptr Z3_ast)
 
-{- | Parse the given string using the SMT-LIB parser.
-
-       The symbol table of the parser can be initialized using the given sorts and declarations.
-       The symbols in the arrays \c sort_names and \c decl_names don't need to match the names
-       of the sorts and declarations in the arrays \c sorts and \c decls. This is an useful feature
-       since we can use arbitrary names to reference sorts and declarations defined using the C API.
-
-       The formulas, assumptions and declarations defined in \c str can be extracted using the functions:
-       #Z3_get_smtlib_num_formulas, #Z3_get_smtlib_formula, #Z3_get_smtlib_num_assumptions, #Z3_get_smtlib_assumption,
-       #Z3_get_smtlib_num_decls, and #Z3_get_smtlib_decl. -}
-foreign import ccall unsafe "Z3_parse_smtlib_string"
-  z3_parse_smtlib_string :: (Ptr Z3_context) -> CString -> CUInt -> Ptr (Ptr Z3_symbol) -> Ptr (Ptr Z3_sort) -> CUInt -> Ptr (Ptr Z3_symbol) -> Ptr (Ptr Z3_func_decl) -> IO ()
-
-{- | Similar to #Z3_parse_smtlib_string, but reads the benchmark from a file. -}
-foreign import ccall unsafe "Z3_parse_smtlib_file"
-  z3_parse_smtlib_file :: (Ptr Z3_context) -> CString -> CUInt -> Ptr (Ptr Z3_symbol) -> Ptr (Ptr Z3_sort) -> CUInt -> Ptr (Ptr Z3_symbol) -> Ptr (Ptr Z3_func_decl) -> IO ()
-
-{- | Return the number of SMTLIB formulas parsed by the last call to #Z3_parse_smtlib_string or #Z3_parse_smtlib_file. -}
-foreign import ccall unsafe "Z3_get_smtlib_num_formulas"
-  z3_get_smtlib_num_formulas :: (Ptr Z3_context) -> IO CUInt
-
-{- | Return the i-th formula parsed by the last call to #Z3_parse_smtlib_string or #Z3_parse_smtlib_file.
-
-       \pre i < Z3_get_smtlib_num_formulas(c) -}
-foreign import ccall unsafe "Z3_get_smtlib_formula"
-  z3_get_smtlib_formula :: (Ptr Z3_context) -> CUInt -> IO (Ptr Z3_ast)
-
-{- | Return the number of SMTLIB assumptions parsed by #Z3_parse_smtlib_string or #Z3_parse_smtlib_file. -}
-foreign import ccall unsafe "Z3_get_smtlib_num_assumptions"
-  z3_get_smtlib_num_assumptions :: (Ptr Z3_context) -> IO CUInt
-
-{- | Return the i-th assumption parsed by the last call to #Z3_parse_smtlib_string or #Z3_parse_smtlib_file.
-
-       \pre i < Z3_get_smtlib_num_assumptions(c) -}
-foreign import ccall unsafe "Z3_get_smtlib_assumption"
-  z3_get_smtlib_assumption :: (Ptr Z3_context) -> CUInt -> IO (Ptr Z3_ast)
-
-{- | Return the number of declarations parsed by #Z3_parse_smtlib_string or #Z3_parse_smtlib_file. -}
-foreign import ccall unsafe "Z3_get_smtlib_num_decls"
-  z3_get_smtlib_num_decls :: (Ptr Z3_context) -> IO CUInt
-
-{- | Return the i-th declaration parsed by the last call to #Z3_parse_smtlib_string or #Z3_parse_smtlib_file.
-
-       \pre i < Z3_get_smtlib_num_decls(c) -}
-foreign import ccall unsafe "Z3_get_smtlib_decl"
-  z3_get_smtlib_decl :: (Ptr Z3_context) -> CUInt -> IO (Ptr Z3_func_decl)
-
-{- | Return the number of sorts parsed by #Z3_parse_smtlib_string or #Z3_parse_smtlib_file. -}
-foreign import ccall unsafe "Z3_get_smtlib_num_sorts"
-  z3_get_smtlib_num_sorts :: (Ptr Z3_context) -> IO CUInt
-
-{- | Return the i-th sort parsed by the last call to #Z3_parse_smtlib_string or #Z3_parse_smtlib_file.
-
-       \pre i < Z3_get_smtlib_num_sorts(c) -}
-foreign import ccall unsafe "Z3_get_smtlib_sort"
-  z3_get_smtlib_sort :: (Ptr Z3_context) -> CUInt -> IO (Ptr Z3_sort)
-
 {- | Retrieve that last error message information generated from parsing. -}
-foreign import ccall unsafe "Z3_get_smtlib_error"
-  z3_get_smtlib_error :: (Ptr Z3_context) -> IO CString
+foreign import ccall unsafe "Z3_get_parser_error"
+  z3_get_parser_error :: (Ptr Z3_context) -> IO CString
 
 {- | Return the error code for the last API call.
 
@@ -3726,6 +3673,14 @@ foreign import ccall unsafe "Z3_solver_assert_and_track"
 {- | Return the set of asserted formulas on the solver. -}
 foreign import ccall unsafe "Z3_solver_get_assertions"
   z3_solver_get_assertions :: (Ptr Z3_context) -> (Ptr Z3_solver) -> IO (Ptr Z3_ast_vector)
+
+{- | load solver assertions from a file. -}
+foreign import ccall unsafe "Z3_solver_from_file"
+  z3_solver_from_file :: (Ptr Z3_context) -> (Ptr Z3_solver) -> CString -> IO ()
+
+{- | load solver assertions from a string. -}
+foreign import ccall unsafe "Z3_solver_from_string"
+  z3_solver_from_string :: (Ptr Z3_context) -> (Ptr Z3_solver) -> CString -> IO ()
 
 {- | Check whether the assertions in a given solver are consistent or not.
 

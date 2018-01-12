@@ -1,5 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE PatternGuards              #-}
 
 -- |
@@ -253,8 +256,6 @@ module Z3.Base (
 
   -- * Optimization
   , mkOptimize
-  , optimizeIncRef
-  , optimizeDecRef
   , optimizeAssert
   , optimizeAssertSoft
   , optimizeMaximize
@@ -355,7 +356,7 @@ module Z3.Base (
   , solverPop
   , solverReset
   , solverGetNumScopes
-  , solverAssertCnstr
+  , solverAssert
   , solverAssertAndTrack
   , solverCheck
   , solverCheckAssumptions
@@ -363,8 +364,6 @@ module Z3.Base (
   , solverGetUnsatCore
   , solverGetReasonUnknown
   , solverToString
-  -- ** Helpers
-  , solverCheckAndGetModel
   ) where
 
 import Z3.Base.C
@@ -1544,14 +1543,10 @@ mkExistsConst = marshalMkQConst z3_mk_exists_const
 ---------------------------------------------------------------------
 -- Optimization
 
+-- /Z3_del_optimizeX/ is called by Haskell's garbage collector before freeing
+-- the 'Optimize' object.
 mkOptimize :: Context -> IO Optimize
 mkOptimize = liftFun0 z3_mk_optimize
-
-optimizeIncRef :: Context -> Optimize -> IO ()
-optimizeIncRef = liftFun1 z3_optimize_inc_ref
-
-optimizeDecRef :: Context -> Optimize -> IO ()
-optimizeDecRef = liftFun1 z3_optimize_dec_ref
 
 optimizeAssert :: Context -> Optimize -> AST -> IO ()
 optimizeAssert = liftFun2 z3_optimize_assert
@@ -2448,8 +2443,8 @@ solverReset = liftFun1 z3_solver_reset
 solverGetNumScopes :: Context -> Solver -> IO Int
 solverGetNumScopes = liftFun1 z3_solver_get_num_scopes
 
-solverAssertCnstr :: Context -> Solver -> AST -> IO ()
-solverAssertCnstr = liftFun2 z3_solver_assert
+solverAssert :: Context -> Solver -> AST -> IO ()
+solverAssert = liftFun2 z3_solver_assert
 
 solverAssertAndTrack :: Context -> Solver -> AST -> AST -> IO ()
 solverAssertAndTrack = liftFun3 z3_solver_assert_and_track
@@ -2487,17 +2482,6 @@ solverGetReasonUnknown = liftFun1 z3_solver_get_reason_unknown
 -- | Convert the given solver into a string.
 solverToString :: Context -> Solver -> IO String
 solverToString = liftFun1 z3_solver_to_string
-
--------------------------------------------------
--- ** Helpers
-
-solverCheckAndGetModel :: Context -> Solver -> IO (Result, Maybe Model)
-solverCheckAndGetModel ctx solver =
-  do res <- solverCheck ctx solver
-     mbModel <- case res of
-                  Unsat -> return Nothing
-                  _     -> Just <$> solverGetModel ctx solver
-     return (res, mbModel)
 
 ---------------------------------------------------------------------
 -- Marshalling
