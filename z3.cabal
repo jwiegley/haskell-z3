@@ -60,6 +60,9 @@ Library
                          containers,
                          mtl > 2.1
 
+    if !impl(ghc >= 8.0)
+        build-depends:   semigroups == 0.18.*
+
     Build-tools:         hsc2hs
     Extensions:          FlexibleInstances
                          FlexibleContexts

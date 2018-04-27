@@ -1,5 +1,6 @@
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 -- |
 -- Module    : Z3.Opts
@@ -52,6 +53,7 @@ import qualified Z3.Base as Base
 
 import           Data.Fixed  ( Fixed )
 import qualified Data.Fixed as Fixed
+import           Data.Semigroup ( Semigroup(..) )
 import           Data.Monoid ( Monoid(..) )
 
 ---------------------------------------------------------------------
@@ -60,9 +62,14 @@ import           Data.Monoid ( Monoid(..) )
 -- | Z3 configuration.
 newtype Opts = Opts [Opt]
 
+instance Semigroup Opts where
+  Opts ps1 <> Opts ps2 = Opts (ps1++ps2)
+
 instance Monoid Opts where
   mempty = Opts []
+#if !(MIN_VERSION_base(4,11,0))
   mappend (Opts ps1) (Opts ps2) = Opts (ps1++ps2)
+#endif
 
 singleton :: Opt -> Opts
 singleton o = Opts [o]
