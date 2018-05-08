@@ -3,6 +3,10 @@ language: nix
 git:
   depth: 1
 
+install:
+  - git clone --depth=1 https://github.com/jwiegley/haskell-z3.git z3
+  - cd z3
+
 env:
   global:
   matrix:
