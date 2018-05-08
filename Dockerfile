@@ -1,9 +1,9 @@
 FROM lnl7/nix:2.0
 
-WORKDIR /tmp/build
+WORKDIR /tmp/z3
 
-COPY default.nix /tmp/build
-COPY package.yaml /tmp/build
+COPY default.nix /tmp/z3
+COPY z3.cabal /tmp/z3
 
 # Install tools needed by builtins.fetchTarball, and then install all
 # dependencies into its own layer, which doesn't change.
