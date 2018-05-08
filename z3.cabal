@@ -76,12 +76,13 @@ Library
 
     includes:            z3.h
 
-    -- In OS X libz3 is linked statically against libgomp.
-    -- In Windows Z3 is compiled using MS C++.
-    if os(darwin) || os(windows)
-        extra-libraries:     z3
-    else
-        extra-libraries:     gomp z3 gomp
+    extra-libraries:     z3
+    -- -- In OS X libz3 is linked statically against libgomp.
+    -- -- In Windows Z3 is compiled using MS C++.
+    -- if os(darwin) || os(windows)
+    --     extra-libraries:     z3
+    -- else
+    --     extra-libraries:     gomp z3
 
 Flag examples
      Description: Build examples.
