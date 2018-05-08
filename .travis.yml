@@ -1,0 +1,37 @@
+language: nix
+
+# sudo: false
+
+# cache:
+#   directories:
+#     - /nix
+#   timeout: 100000
+
+git:
+  depth: 1
+
+install:
+  - nix-shell --argstr compiler ghc822 --run true
+  - nix-shell --argstr compiler ghc842 --run true
+
+env:
+  global:
+    - NIXPKGS_TESTS=yes
+    - MATCHING_TESTS=yes
+  matrix:
+    - GHCVERSION=ghc822 PROFILING=false
+    - GHCVERSION=ghc822 PROFILING=true
+    - GHCVERSION=ghc842 PROFILING=false
+    - GHCVERSION=ghc842 PROFILING=true
+
+matrix:
+  allow_failures:
+  exclude:
+
+script:
+  - nix-build --argstr compiler $GHCVERSION --arg doProfiling $PROFILING
+
+branches:
+  only:
+    - master
+    - 4.6.0
