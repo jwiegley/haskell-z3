@@ -2547,8 +2547,8 @@ mkC2hRefCount mk incRef decRef ctx xPtr =
     incRef ctxPtr xPtr
     contextIncRef ctx
     let xFinalizer = do
-        decRef ctxPtr xPtr
-        contextDecRef ctxPtr (refCount ctx)
+            decRef ctxPtr xPtr
+            contextDecRef ctxPtr (refCount ctx)
     mk <$> newForeignPtr xPtr xFinalizer
 
 dummy_inc_ref :: Z3IncRefFun c

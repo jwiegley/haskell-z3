@@ -43,7 +43,6 @@ spec = around withContext $ do
 
     specify "mkBvmul" $ \ctx ->
       let bad = do
-          x <- Z3.mkFreshIntVar ctx "x";
-          Z3.mkBvmul ctx x x
+              x <- Z3.mkFreshIntVar ctx "x";
+              Z3.mkBvmul ctx x x
       in bad `shouldThrow` anyZ3Error
-
