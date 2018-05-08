@@ -6,6 +6,7 @@ git:
 install:
   - git clone --depth=1 https://github.com/jwiegley/haskell-z3.git z3
   - cd z3
+  - git checkout 4.6.0
 
 env:
   global:
@@ -26,5 +27,4 @@ script:
 
 branches:
   only:
-    - master
     - 4.6.0
