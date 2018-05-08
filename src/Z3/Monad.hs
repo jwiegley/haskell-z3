@@ -329,15 +329,10 @@ module Z3.Monad
   , optimizeGetObjectives
 
   -- ** Helpers
-  , assert
-  , check
   , checkAssumptions
   , checkAndGetModel
-  , getModel
   , withModel
   , getUnsatCore
-  , push
-  , pop
   , local
   , reset
   , getNumScopes
@@ -1301,7 +1296,7 @@ mkBvmulNoUnderflow = liftFun2 Base.mkBvmulNoUnderflow
 mkSelect :: MonadBaseZ3 z3 => AST -> AST -> z3 AST
 mkSelect = liftFun2 Base.mkSelect
 
--- | Array update.   
+-- | Array update.
 --
 -- Reference: <http://research.microsoft.com/en-us/um/redmond/projects/z3/group__capi.html#gae305a4f54b4a64f7e5973ae6ccb13593>
 mkStore :: MonadBaseZ3 z3 => AST -> AST -> AST -> z3 AST
