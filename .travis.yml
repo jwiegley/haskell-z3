@@ -3,10 +3,6 @@ language: nix
 git:
   depth: 1
 
-install:
-  - nix-shell --argstr compiler ghc822 --run true
-  - nix-shell --argstr compiler ghc842 --run true
-
 env:
   global:
   matrix:
