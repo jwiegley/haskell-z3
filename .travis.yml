@@ -13,6 +13,8 @@ env:
 
 matrix:
   allow_failures:
+    - GHCVERSION=ghc842 PROFILING=false
+    - GHCVERSION=ghc842 PROFILING=true
   exclude:
 
 script:
