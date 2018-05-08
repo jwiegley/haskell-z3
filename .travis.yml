@@ -4,9 +4,8 @@ git:
   depth: 1
 
 install:
-  - git clone --depth=1 https://github.com/jwiegley/haskell-z3.git z3
+  - git clone --depth=1 https://github.com/jwiegley/haskell-z3.git -b 4.6.0 z3
   - cd z3
-  - git checkout 4.6.0
 
 env:
   global:
