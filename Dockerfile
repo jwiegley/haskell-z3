@@ -10,5 +10,5 @@ COPY z3.cabal /tmp/z3
 RUN nix-env -f '<nixpkgs>' -i gnutar gzip && \
     nix-shell -Q -j2 --run true
 
-COPY . /tmp/build
+COPY . /tmp/z3
 RUN nix-env -f . -i z3
