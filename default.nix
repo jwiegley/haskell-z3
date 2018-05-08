@@ -28,7 +28,6 @@ let inherit (nixpkgs) pkgs;
 
   haskellPackages = pkgs.haskell.packages.${compiler}.override {
     overrides = with pkgs.haskell.lib; self: super: rec {
-      serialise = dontCheck super.serialise;
     };
   };
 

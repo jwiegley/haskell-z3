@@ -1,12 +1,5 @@
 language: nix
 
-# sudo: false
-
-# cache:
-#   directories:
-#     - /nix
-#   timeout: 100000
-
 git:
   depth: 1
 
@@ -16,8 +9,6 @@ install:
 
 env:
   global:
-    - NIXPKGS_TESTS=yes
-    - MATCHING_TESTS=yes
   matrix:
     - GHCVERSION=ghc822 PROFILING=false
     - GHCVERSION=ghc822 PROFILING=true
