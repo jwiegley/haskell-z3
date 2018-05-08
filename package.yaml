@@ -78,7 +78,7 @@ library:
       then:
         extra-libraries: z3
       else:
-        extra-libraries: gomp z3 gomp
+        extra-libraries: gomp z3
 
 executables:
   examples:

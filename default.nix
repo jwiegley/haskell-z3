@@ -38,7 +38,9 @@ in haskellPackages.developPackage {
   };
 
   modifier = drv: pkgs.haskell.lib.overrideCabal drv (attrs: {
-    libraryHaskellDepends = attrs.libraryHaskellDepends ++ [ pkgs.z3 ];
+    libraryHaskellDepends = attrs.libraryHaskellDepends
+      ++ pkgs.stdenv.lib.optional pkgs.stdenv.isLinux pkgs.gomp
+      ++ [ pkgs.z3 ];
 
     enableLibraryProfiling    = doProfiling;
     enableExecutableProfiling = doProfiling;
