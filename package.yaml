@@ -74,7 +74,7 @@ library:
   # In OS X libz3 is linked statically against libgomp. In Windows Z3 is
   # compiled using MS C++.
   when:
-    - condition: os(darwin) || os(windows)
+    - condition: os(darwin) || os(linux)
       then:
         extra-libraries: z3
       else:
