@@ -8,8 +8,8 @@ env:
   matrix:
     - GHCVERSION=ghc822 PROFILING=false
     - GHCVERSION=ghc822 PROFILING=true
-    - GHCVERSION=ghc842 PROFILING=false
-    - GHCVERSION=ghc842 PROFILING=true
+    # - GHCVERSION=ghc842 PROFILING=false
+    # - GHCVERSION=ghc842 PROFILING=true
 
 matrix:
   allow_failures:
