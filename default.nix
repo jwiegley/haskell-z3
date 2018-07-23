@@ -1,9 +1,7 @@
 { compiler    ? "ghc822"
-, doProfiling ? false
-, doBenchmark ? false
-, rev         ? "255a833e841628c0b834575664eae373e28cdc27"
-, sha256      ? "022xm1pf4fpjjy69g7qz6rpqnwpjcy1l0vj49m8xmgn553cs42ch"
-, nixpkgs     ? import (builtins.fetchTarball {
+, rev         ? "49bdae006e66e70ad3245a463edc01b5749250d3"
+, sha256      ? "1ijsifmap47nfzg0spny94lmj66y3x3x8i6vs471bnjamka3dx8p"
+, pkgs        ? import (builtins.fetchTarball {
     url    = "https://github.com/NixOS/nixpkgs/archive/${rev}.tar.gz";
     sha256 = sha256; }) {
     config.allowBroken = false;
@@ -13,7 +11,7 @@
       z3 = pkgs.stdenv.lib.overrideDerivation super.z3 (attrs: rec {
         name = "z3-${version}";
         version = "4.6.0";
-        src = super.fetchFromGitHub {
+        src = pkgs.fetchFromGitHub {
           owner  = "Z3Prover";
           repo   = "z3";
           rev    = "b0aaa4c6d7a739eb5e8e56a73e0486df46483222";
@@ -22,27 +20,21 @@
       });
     };
   }
+, returnShellEnv ? pkgs.lib.inNixShell
 }:
 
-let inherit (nixpkgs) pkgs;
-
-  haskellPackages = pkgs.haskell.packages.${compiler}.override {
-    overrides = with pkgs.haskell.lib; self: super: rec {
-    };
-  };
+let haskellPackages = pkgs.haskell.packages.${compiler};
 
 in haskellPackages.developPackage {
   root = ./.;
 
   source-overrides = {
+    exceptions = "0.10.0";
   };
 
   modifier = drv: pkgs.haskell.lib.overrideCabal drv (attrs: {
     libraryHaskellDepends = attrs.libraryHaskellDepends ++ [ pkgs.z3 ];
-
-    enableLibraryProfiling    = doProfiling;
-    enableExecutableProfiling = doProfiling;
-
-    inherit doBenchmark;
   });
+
+  inherit returnShellEnv;
 }
